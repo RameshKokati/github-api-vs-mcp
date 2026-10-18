@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "githubIssues": {
+      "command": "/absolute/path/to/github-api-vs-mcp/.venv/bin/python",
+      "args": ["-m", "mcp_server.main"]
+    }
+  }
+}
