@@ -90,6 +90,53 @@ The `.mcp.json` is machine-specific and is intentionally ignored by Git. VS Code
 
 The server uses MCP's stdio transport. Run by itself, it waits for a compatible client and does not print issue results to the terminal. The client launches it and exchanges MCP messages.
 
+## Connect the MCP Server to VS Code
+
+These steps use VS Code with GitHub Copilot Chat in Agent mode.
+
+1. Clone the project and open its root folder in VS Code:
+
+   ```bash
+   git clone https://github.com/RameshKokati/github-api-vs-mcp.git
+   cd github-api-vs-mcp
+   ```
+
+2. Create the virtual environment and install the project dependencies:
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   python -m pip install -r requirements.txt
+   ```
+
+   If your Mac's `python3` is older than 3.10, use an installed newer interpreter, such as `python3.13`, in the `venv` command.
+
+3. In the project root, create `.mcp.json`. Replace both example paths with absolute paths from your machine. Find the `certifi` bundle path by running `python -c "import certifi; print(certifi.where())"` inside the activated environment and use its output for `SSL_CERT_FILE`:
+
+   ```json
+   {
+     "mcpServers": {
+       "githubIssues": {
+         "command": "/absolute/path/to/github-api-vs-mcp/.venv/bin/python",
+         "args": ["-m", "mcp_server.main"],
+         "env": {
+           "SSL_CERT_FILE": "/absolute/path/to/.venv/lib/python3.13/site-packages/certifi/cacert.pem"
+         }
+       }
+     }
+   }
+   ```
+
+   `SSL_CERT_FILE` points Python at trusted CA certificates and avoids the macOS `CERTIFICATE_VERIFY_FAILED` error seen in some installations. The `.mcp.json` file is machine-specific and is ignored by Git; do not commit it. If you do not need the certificate override, you can remove the `env` block.
+
+4. Open the project root folder in VS Code. In the MCP Servers list, start or restart `githubIssues`. In Copilot Chat, select **Agent** mode, open **Configure Tools**, and enable `get_open_issues` under `githubIssues`.
+
+5. Try this prompt in Copilot Chat:
+
+   > Use the `get_open_issues` tool from `githubIssues` with owner `pallets`, repo `flask`, and limit `5`. Return the issue titles and links.
+
+Confirm that the tool call is labeled `get_open_issues` from `githubIssues`. Another installed GitHub MCP server may have a similarly named issue-listing tool. This server uses stdio, so launching `python -m mcp_server.main` manually in a terminal waits for an MCP client instead of printing the issue results.
+
 ## Troubleshooting
 
 ### SSL certificate verification fails on macOS
