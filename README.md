@@ -85,15 +85,25 @@ These steps use VS Code with GitHub Copilot Chat in Agent mode.
 
 2. Create the virtual environment and install the project dependencies:
 
+   **macOS/Linux**
+
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
    python -m pip install -r requirements.txt
    ```
 
-   If your Mac's `python3` is older than 3.10, use an installed newer interpreter, such as `python3.13`, in the `venv` command.
+   **Windows PowerShell**
 
-3. In the project root, create `.mcp.json`. Replace both example paths with absolute paths from your machine. Find the `certifi` bundle path by running `python -c "import certifi; print(certifi.where())"` inside the activated environment and use its output for `SSL_CERT_FILE`:
+   ```powershell
+   py -m venv .venv
+   .venv\Scripts\Activate.ps1
+   python -m pip install -r requirements.txt
+   ```
+
+   If your Python command points to a version older than 3.10, use an installed newer interpreter, such as `python3.13` on macOS/Linux or `py -3.13` on Windows, when creating the environment.
+
+3. In the project root, create `.mcp.json`. Replace both example paths with absolute paths from your machine. On macOS/Linux, the Python executable is under `.venv/bin/python`; on Windows, use a path such as `C:/Users/you/github-api-vs-mcp/.venv/Scripts/python.exe`. Find the `certifi` bundle path by running `python -c "import certifi; print(certifi.where())"` inside the activated environment and use its output for `SSL_CERT_FILE`. In Windows JSON paths, use forward slashes or escape each backslash as `\\`:
 
    ```json
    {
@@ -109,7 +119,9 @@ These steps use VS Code with GitHub Copilot Chat in Agent mode.
    }
    ```
 
-   `SSL_CERT_FILE` points Python at trusted CA certificates and avoids the macOS `CERTIFICATE_VERIFY_FAILED` error seen in some installations. The `.mcp.json` file is machine-specific and is ignored by Git; do not commit it. If you do not need the certificate override, you can remove the `env` block.
+   This is an example using the portable workspace-root `.mcp.json` format. VS Code also supports a `.vscode/mcp.json` format with a different schema, and supported formats can vary by VS Code version and agent client. Check the [official VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) and use the format supported by your installation.
+
+   `SSL_CERT_FILE` points Python at trusted CA certificates and can resolve `CERTIFICATE_VERIFY_FAILED` errors on macOS, Windows, or Linux. The `.mcp.json` file is machine-specific and is ignored by Git; do not commit it. If you do not need the certificate override, you can remove the `env` block.
 
 4. Open the project root folder in VS Code. In the MCP Servers list, start or restart `githubIssues`. In Copilot Chat, select **Agent** mode, open **Configure Tools**, and enable `get_open_issues` under `githubIssues`.
 
@@ -121,30 +133,44 @@ Confirm that the tool call is labeled `get_open_issues` from `githubIssues`. Ano
 
 ## Troubleshooting
 
-### SSL certificate verification fails on macOS
+### SSL certificate verification fails
 
-If Python reports `CERTIFICATE_VERIFY_FAILED` when contacting GitHub, first confirm that `certifi` is installed in this project's virtual environment, then print its CA bundle path:
+If Python reports `CERTIFICATE_VERIFY_FAILED` when contacting GitHub, confirm that `certifi` is installed in this project's virtual environment, then print its CA bundle path:
 
 ```bash
 python -m pip install certifi
 python -c "import certifi; print(certifi.where())"
 ```
 
-Use the printed path for `SSL_CERT_FILE`. For a one-time direct script run:
+Use the printed path for `SSL_CERT_FILE`. For a one-time direct script run on macOS/Linux:
 
 ```bash
 SSL_CERT_FILE="$(python -c 'import certifi; print(certifi.where())')" \
 python -m direct_api.main pallets flask
 ```
 
-For the web API, start Uvicorn with the same environment variable:
+In Windows PowerShell, set the variable and run the script:
+
+```powershell
+$env:SSL_CERT_FILE = (python -c "import certifi; print(certifi.where())")
+python -m direct_api.main pallets flask
+```
+
+For the web API, start Uvicorn with the same environment variable. On macOS/Linux:
 
 ```bash
 SSL_CERT_FILE="$(python -c 'import certifi; print(certifi.where())')" \
 python -m uvicorn web_api.main:app --reload
 ```
 
-For MCP, put the path printed by the Python command into the `.mcp.json` `env.SSL_CERT_FILE` field, save the file, and restart the `githubIssues` server in your MCP client. Paths inside `.mcp.json` are literal strings; shell expressions such as `$(...)` are not evaluated there.
+In Windows PowerShell:
+
+```powershell
+$env:SSL_CERT_FILE = (python -c "import certifi; print(certifi.where())")
+python -m uvicorn web_api.main:app --reload
+```
+
+For MCP, put the path printed by the Python command into the configuration's `env.SSL_CERT_FILE` field, save the file, and restart the `githubIssues` server in your MCP client. Paths inside JSON config files are literal strings; shell expressions such as `$(...)` are not evaluated there.
 
 ### MCP server appears, but the expected tool is not called
 
