@@ -77,7 +77,10 @@ For local VS Code use, create a workspace-root `.mcp.json` with the following co
   "mcpServers": {
     "githubIssues": {
       "command": "/absolute/path/to/github-api-vs-mcp/.venv/bin/python",
-      "args": ["-m", "mcp_server.main"]
+      "args": ["-m", "mcp_server.main"],
+      "env": {
+        "SSL_CERT_FILE": "/absolute/path/to/your/venv/lib/python3.13/site-packages/certifi/cacert.pem"
+      }
     }
   }
 }
@@ -86,6 +89,41 @@ For local VS Code use, create a workspace-root `.mcp.json` with the following co
 The `.mcp.json` is machine-specific and is intentionally ignored by Git. VS Code's Copilot Chat can read a workspace-root `.mcp.json`; in Agent mode, start `githubIssues`, enable `get_open_issues` in Configure Tools, and ask it to retrieve issues for `pallets/flask`.
 
 The server uses MCP's stdio transport. Run by itself, it waits for a compatible client and does not print issue results to the terminal. The client launches it and exchanges MCP messages.
+
+## Troubleshooting
+
+### SSL certificate verification fails on macOS
+
+If Python reports `CERTIFICATE_VERIFY_FAILED` when contacting GitHub, first confirm that `certifi` is installed in this project's virtual environment, then print its CA bundle path:
+
+```bash
+python -m pip install certifi
+python -c "import certifi; print(certifi.where())"
+```
+
+Use the printed path for `SSL_CERT_FILE`. For a one-time direct script run:
+
+```bash
+SSL_CERT_FILE="$(python -c 'import certifi; print(certifi.where())')" \
+python -m direct_api.main pallets flask
+```
+
+For the web API, start Uvicorn with the same environment variable:
+
+```bash
+SSL_CERT_FILE="$(python -c 'import certifi; print(certifi.where())')" \
+python -m uvicorn web_api.main:app --reload
+```
+
+For MCP, put the path printed by the Python command into the `.mcp.json` `env.SSL_CERT_FILE` field, save the file, and restart the `githubIssues` server in your MCP client. Paths inside `.mcp.json` are literal strings; shell expressions such as `$(...)` are not evaluated there.
+
+### MCP server appears, but the expected tool is not called
+
+Confirm the `githubIssues` server is running and enable its `get_open_issues` tool in the client's tool configuration. Ask for the tool by name and provide `owner`, `repo`, and `limit`. A different server may expose a similarly named issue-listing tool; check the tool-call label to confirm the call came from `githubIssues`.
+
+### MCP server prints nothing in the terminal
+
+This server uses stdio and is meant to be launched by an MCP client. Starting `python -m mcp_server.main` manually normally waits for the client instead of printing issue results. Make the request through the client's `get_open_issues` tool.
 
 ## Project layout
 
