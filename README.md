@@ -70,25 +70,7 @@ The local API accepts query parameters, calls GitHub through the shared function
 
 The MCP server in `mcp_server/main.py` exposes one tool, `get_open_issues(owner, repo, limit)`. It uses the same shared function as the other demos.
 
-For local VS Code use, create a workspace-root `.mcp.json` with the following configuration. Replace the Python path with the path to this project's `.venv/bin/python`:
-
-```json
-{
-  "mcpServers": {
-    "githubIssues": {
-      "command": "/absolute/path/to/github-api-vs-mcp/.venv/bin/python",
-      "args": ["-m", "mcp_server.main"],
-      "env": {
-        "SSL_CERT_FILE": "/absolute/path/to/your/venv/lib/python3.13/site-packages/certifi/cacert.pem"
-      }
-    }
-  }
-}
-```
-
-The `.mcp.json` is machine-specific and is intentionally ignored by Git. VS Code's Copilot Chat can read a workspace-root `.mcp.json`; in Agent mode, start `githubIssues`, enable `get_open_issues` in Configure Tools, and ask it to retrieve issues for `pallets/flask`.
-
-The server uses MCP's stdio transport. Run by itself, it waits for a compatible client and does not print issue results to the terminal. The client launches it and exchanges MCP messages.
+The server uses MCP's stdio transport, so an MCP-compatible client launches it and calls the tool. See [Connect the MCP Server to VS Code](#connect-the-mcp-server-to-vs-code) for setup and testing instructions.
 
 ## Connect the MCP Server to VS Code
 
